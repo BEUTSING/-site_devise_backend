@@ -1,0 +1,15 @@
+nelmio_api_doc:
+    documentation:
+        info:
+            title: POS API Documentation
+            description:  Point of Sale Management API
+            version: 1.0.0
+        components:
+            securitySchemes:
+                Bearer:
+                    type: http
+                    scheme: bearer
+                    bearerFormat: JWT
+                    description: 'Enter JWT token in the format: Bearer {token}. Token includes company context for multi-tenant operations.'
+        security:
+            - Bearer: []
