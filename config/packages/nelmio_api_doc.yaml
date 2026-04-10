@@ -1,8 +1,11 @@
 nelmio_api_doc:
     documentation:
         info:
-            title: POS API Documentation
-            description:  Point of Sale Management API
+            title: Currency Exchange Platform API
+            description: |
+                This API allows users to exchange currencies in Cameroon.
+                It provides features for publishing offers, searching for available exchanges,
+                and securing transactions between users.
             version: 1.0.0
         components:
             securitySchemes:
