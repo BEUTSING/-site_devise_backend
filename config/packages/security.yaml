@@ -30,4 +30,5 @@ security:
         - { path: ^/api/v1/user/login, roles: PUBLIC_ACCESS }
         - { path: ^/api/v1/user/register, roles: PUBLIC_ACCESS }
         - { path: ^/api/v1/(login|token/refresh), roles: PUBLIC_ACCESS }
+        - { path: ^/api/v1/offres/list, roles: PUBLIC_ACCESS }
         - { path: ^/api/v1,       roles: IS_AUTHENTICATED_FULLY }

@@ -25,7 +25,7 @@ class RegisterService
     public function register(Request $request): array
     {
         $data = json_decode($request->getContent(), true);
-         $required =['name','phone','city','color','email'];
+         $required =['name','phone','city','email'];
          foreach($required as $field){
             if(empty($data[$field])){
                 throw new \InvalidArgumentException('The field '.$field.' is required');
@@ -103,11 +103,6 @@ class RegisterService
     if (isset($data['city'])) {
         $user->setCity($data['city']);
     }
-
-    if (isset($data['color'])) {
-        $user->setColor($data['color']);
-    }
-
 
        if(isset($data["role"])){
              $allowedRoles = array_column(RoleUser::cases(), 'value');
