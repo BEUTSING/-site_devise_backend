@@ -13,7 +13,6 @@ use OpenApi\Attributes as OA;
 
 #[Route('/api/v1/offres',name:'app_offres_')]
 #[OA\Tag(name: 'Offres')] 
-#[IsGranted('ROLE_USER')]
 final class OffresController extends AbstractController
 {
     private OffresService $offresService;
@@ -89,6 +88,9 @@ final class OffresController extends AbstractController
     }
 
 
+    /**
+     *create an offre
+     */
     #[Route(' ', name: 'create', methods: ['POST'])]
     #[OA\Post(
         path: "/api/v1/offres/create",
