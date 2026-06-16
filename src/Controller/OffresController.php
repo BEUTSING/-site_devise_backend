@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\Offres;
 use App\Service\OffresService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -23,7 +24,6 @@ final class OffresController extends AbstractController
     }
 
     #[Route('/list', name: 'list', methods: ['GET'])]
-    #[IsGranted('ROLE_USER')]
     #[OA\Get(
         path: "/api/v1/offres/list",
         summary: "List offres",
@@ -67,23 +67,32 @@ final class OffresController extends AbstractController
     )]
     public function list(Request $request): JsonResponse
     {
-        try {
-            $deviseSource = $request->query->get('deviseSource');
-            $deviseCible = $request->query->get('deviseCible');
-            if ($deviseSource && $deviseCible) {
-        $data = $this->offresService->getByBoth($deviseSource, $deviseCible);
-        } elseif
-             ($deviseSource !==null) {
-                $data = $this->offresService->getByDeviseSource($deviseSource);
-            } elseif ($deviseCible !== null) {
-                $data = $this->offresService->getByDeviseCible($deviseCible);
-            } else {
-                            $data = $this->offresService->getAll();
-            }
+         try {
+        $deviseSource = $request->query->get('deviseSource');
+        $deviseCible = $request->query->get('deviseCible');
 
-            return $this->json($data, Response::HTTP_OK);
-        } catch (\RuntimeException $e) {
-            return $this->json(['error' => $e->getMessage()], Response::HTTP_NOT_FOUND);
+        if ($deviseSource !== null && $deviseCible !== null) {
+            $data = $this->offresService->getByBoth($deviseSource, $deviseCible);
+        } elseif ($deviseSource !== null) {
+            $data = $this->offresService->getByDeviseSource($deviseSource);
+        } elseif ($deviseCible !== null) {
+            $data = $this->offresService->getByDeviseCible($deviseCible);
+        } else {
+            $data = $this->offresService->getAll();
+        }
+
+        $data = array_map(fn($offre) => $this->format($offre), $data);
+
+        return $this->json([
+            'status' => 'success',
+            'data' => $data
+        ], Response::HTTP_OK);
+
+        } catch (\Exception $e) {
+            return $this->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], Response::HTTP_BAD_REQUEST);
         }
     }
 
@@ -91,9 +100,10 @@ final class OffresController extends AbstractController
     /**
      *create an offre
      */
-    #[Route(' ', name: 'create', methods: ['POST'])]
+    #[Route('', name: 'create', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
     #[OA\Post(
-        path: "/api/v1/offres/create",
+        path: "/api/v1/offres",
         summary: "Create an offre",
         requestBody: new OA\RequestBody(
             required: true,
@@ -132,14 +142,23 @@ final class OffresController extends AbstractController
     public function create(Request $request): JsonResponse
     {
         try {
-            $data = $this->offresService->create($request);
-            return $this->json($data, Response::HTTP_CREATED);
+        $offre = $this->offresService->create($request);
+
+        return $this->json([
+            'status' => 'success',
+            'data' => $this->format($offre)
+        ], Response::HTTP_CREATED);
+
         } catch (\InvalidArgumentException $e) {
-            return $this->json(['error' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
+            return $this->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], Response::HTTP_BAD_REQUEST);
         }
     }
 
     #[Route('/{id}', name: 'update', methods: ['PUT'])]
+    #[IsGranted('ROLE_USER')]
     #[OA\Put(
         path: "/api/v1/offres/{id}",
         summary: "Update an offre",
@@ -190,14 +209,23 @@ final class OffresController extends AbstractController
     public function update(int $id, Request $request): JsonResponse
     {
         try {
-            $data = $this->offresService->update($id, $request);
-            return $this->json($data, Response::HTTP_OK);
+        $offre = $this->offresService->update($id, $request);
+
+        return $this->json([
+            'status' => 'success',
+            'data' => $this->format($offre)
+        ], Response::HTTP_OK);
+
         } catch (\InvalidArgumentException $e) {
-            return $this->json(['error' => $e->getMessage()], Response::HTTP_NOT_FOUND);
+            return $this->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], Response::HTTP_NOT_FOUND);
         }
     }
 
     #[Route('/{id}', name: 'delete', methods: ['DELETE'])]
+    #[IsGranted('ROLE_USER')]
     #[OA\Delete(
         path: "/api/v1/offres/{id}",
         summary: "Delete an offre",
@@ -227,11 +255,36 @@ final class OffresController extends AbstractController
     )]
     public function delete(int $id): JsonResponse
     {
-        try {
-            $message = $this->offresService->delete($id);
-            return $this->json(['message' => $message], Response::HTTP_OK);
+       try {
+        $message = $this->offresService->delete($id);
+
+        return $this->json([
+            'status' => 'success',
+            'message' => $message['message']
+        ], Response::HTTP_OK);
+
         } catch (\InvalidArgumentException $e) {
-            return $this->json(['error' => $e->getMessage()], Response::HTTP_NOT_FOUND);
+            return $this->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], Response::HTTP_NOT_FOUND);
         }
+    }
+
+     // FORMAT (clé pour garder le même format partout)
+    private function format(Offres $offre): array
+    {
+        return [
+            'id' => $offre->getId(),
+            'montant' => $offre->getMontant(),
+            'deviseSource' => $offre->getDeviseSource(),
+            'deviseCible' => $offre->getDeviseCible(),
+            'taux' => $offre->getTaux(),
+            'statut' => $offre->getStatut(),
+            'image' => $offre->getImage(),
+            'user' => $offre->getUser() ? $offre->getUser()->getId() : null,
+            'createdAt' => $offre->getCreatedAt()->format('Y-m-d H:i:s'),
+            'updatedAt' => $offre->getUpdatedAt()->format('Y-m-d H:i:s'),
+        ];
     }
 }

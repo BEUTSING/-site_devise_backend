@@ -27,13 +27,7 @@ class OffresService
             throw new \RuntimeException('No offres found');
         }
 
-        $data = [];
-
-        foreach ($offres as $offre) {
-            $data[] = $this->format($offre);
-        }
-
-        return $data;
+        return $offres;
     }
 
     // GET BY deviseSource
@@ -45,7 +39,7 @@ class OffresService
             throw new \RuntimeException('No offres found');
         }
 
-        return $this->format($offres);
+        return $offres;
     }
 
     // GET BY deviseCible
@@ -57,7 +51,7 @@ class OffresService
             throw new \RuntimeException('No offres found');
         }
 
-        return $this->format($offres);
+        return $offres;
     }
 
     // GET BY BOTH
@@ -69,13 +63,15 @@ class OffresService
             throw new \RuntimeException('No offres found');
         }
 
-        return $this->format($offres);
+        return $offres;
     }
     // CREATE
-    public function create(Request $request): array
+    public function create(Request $request): Offres
     {
         $data = json_decode($request->getContent(), true);
-
+        if (!$data) {
+            throw new \InvalidArgumentException("Invalid JSON data");
+        }
         $required = ['montant', 'deviseSource', 'deviseCible', 'taux', 'statut'];
 
         foreach ($required as $field) {
@@ -95,11 +91,11 @@ class OffresService
         $this->em->persist($offre);
         $this->em->flush();
 
-        return [$this->format($offre)];
+        return  $offre;
     }
 
     // UPDATE
-    public function update(int $id, Request $request): array
+    public function update(int $id, Request $request): Offres
     {
         $data = json_decode($request->getContent(), true);
 
@@ -135,7 +131,7 @@ class OffresService
 
         $this->em->flush();
 
-        return [$this->format($offre)];
+        return $offre;
     }
 
     // DELETE
@@ -153,20 +149,4 @@ class OffresService
         return 'Offre deleted successfully';
     }
 
-    // FORMAT (clé pour garder le même format partout)
-    private function format(Offres $offre): array
-    {
-        return [
-            'id' => $offre->getId(),
-            'montant' => $offre->getMontant(),
-            'deviseSource' => $offre->getDeviseSource(),
-            'deviseCible' => $offre->getDeviseCible(),
-            'taux' => $offre->getTaux(),
-            'statut' => $offre->getStatut(),
-            'image' => $offre->getImage(),
-            'user' => $offre->getUser() ? $offre->getUser()->getId() : null,
-            'createdAt' => $offre->getCreatedAt()->format('Y-m-d H:i:s'),
-            'updatedAt' => $offre->getUpdatedAt()->format('Y-m-d H:i:s'),
-        ];
-    }
 }

@@ -35,6 +35,10 @@ class Offres
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $image = null;
 
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: "SET NULL")]
+    private ?TauxChange $tauxChange = null;
+
     #[ORM\ManyToOne(inversedBy: 'offres')]
     private ?User $user = null;
 
@@ -111,6 +115,18 @@ class Offres
     public function setImage(?string $image): static
     {
         $this->image = $image;
+
+        return $this;
+    }
+
+    public function getTauxChange(): ?TauxChange
+    {
+        return $this->tauxChange;
+    }
+
+    public function setTauxChange(?TauxChange $tauxChange): static
+    {
+        $this->tauxChange = $tauxChange;
 
         return $this;
     }

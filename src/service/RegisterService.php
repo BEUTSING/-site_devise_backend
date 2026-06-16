@@ -21,78 +21,85 @@ class RegisterService
         $this->passwordHasher=$passwordHasher;
         $this->userrepo=$userrepo;
     }
-    //
-    public function register(Request $request): array
+
+    // LIST
+      public function listUsers(): array
     {
-        $data = json_decode($request->getContent(), true);
-         $required =['name','phone','city','email'];
-         foreach($required as $field){
-            if(empty($data[$field])){
-                throw new \InvalidArgumentException('The field '.$field.' is required');
-            }
-         }
-            if(!filter_var($data['email'],FILTER_VALIDATE_EMAIL)){
-                throw new \InvalidArgumentException('The email is not valid');
-            }
-            $userexists=$this->userrepo->findOneBy(['email'=>$data['email']]);
-            if($userexists){
-                throw new \RuntimeException('this user already exists');
-            }
+    $users = $this->userrepo->findAll();
 
-        $user=new User();
-        $user->setName($data['name']);
-        $user->setPhone($data['phone']);
-        $user->setCity($data['city']);
-        $user->setEmail($data['email']);
-        $user->setPassword($this->passwordHasher->hashPassword($user, $data['password']));
-
-       $this->em->persist($user);
-        $this->em->flush();
-        $info[]=[
-            "id"=>$user->getId(),
-            "name"=>$user->getName(),
-            "phone"=>$user->getPhone(),
-            "city"=>$user->getCity(),
-            "email"=>$user->getEmail()
-        ];
-        return $info;
+    return array_map(fn($user) => $this->formatRegister($user), $users);
     }
-    //list users
-    public function listUsers():array{
-        $users=$this->userrepo->findAll();
-        $data=[];
-        foreach($users as $user){
-            $data[]=[
-                "id"=>$user->getId(),
-                "name"=>$user->getName(),
-                "phone"=>$user->getPhone(),
-                "city"=>$user->getCity(),
-                "email"=>$user->getEmail(),
-                "roles"=>$user->getRoles()
-            ];
+    // REGISTER
+    public function register(Request $request): array
+{
+    $data = json_decode($request->getContent(), true);
+
+    if (!$data) {
+        throw new \InvalidArgumentException('Invalid JSON data');
+    }
+
+    $required = ['name','phone','city','email','password'];
+
+    foreach ($required as $field) {
+        if (empty($data[$field])) {
+            throw new \InvalidArgumentException('The field '.$field.' is required');
         }
-        return $data;
     }
+
+    if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+        throw new \InvalidArgumentException('The email is not valid');
+    }
+
+    $userexists = $this->userrepo->findOneBy(['email'=>$data['email']]);
+    if ($userexists) {
+        throw new \RuntimeException('This user already exists');
+    }
+
+    $user = new User();
+    $user->setName($data['name']);
+    $user->setPhone($data['phone']);
+    $user->setCity($data['city']);
+    $user->setEmail($data['email']);
+    $user->setPassword(
+        $this->passwordHasher->hashPassword($user, $data['password'])
+    );
+
+    $this->em->persist($user);
+    $this->em->flush();
+
+    return $this->formatRegister($user);
+    }
+
     //update user
+     public function updateRegister(Request $request, int $id): array
+{
+    $user = $this->userrepo->find($id);
 
-    public function updateregister(Request $request,int $id): array{
+    if (!$user) {
+        throw new \InvalidArgumentException('User not found');
+    }
 
-        $user =$this->userrepo->find($id);
-        if (!$user) {
+    $data = json_decode($request->getContent(), true);
 
-            throw new \InvalidArgumentException('User not found');
-        } 
+    if (!$data) {
+        throw new \InvalidArgumentException('Invalid JSON data');
+    }
 
-        $data=json_decode($request->getContent(), true);
+    if (isset($data['email'])) {
+        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            throw new \InvalidArgumentException('The email is not valid');
+        }
 
-             if(!filter_var($data['email'],FILTER_VALIDATE_EMAIL)){
-                throw new \InvalidArgumentException('The email is not valid');
-            }
-            $userexists=$this->userrepo->findOneBy(['email'=>$data['email']]);
-            if($userexists){
-                throw new \RuntimeException('this user already exists');
-            }
-            if (isset($data['name'])) {
+        $userexists = $this->userrepo->findOneBy(['email'=>$data['email']]);
+
+        if ($userexists && $userexists->getId() !== $user->getId()) {
+            throw new \RuntimeException('Email already used');
+        }
+
+        $user->setEmail($data['email']);
+    }
+
+    if (isset($data['name'])) {
         $user->setName($data['name']);
     }
 
@@ -104,28 +111,18 @@ class RegisterService
         $user->setCity($data['city']);
     }
 
-       if(isset($data["role"])){
-             $allowedRoles = array_column(RoleUser::cases(), 'value');
-
-            foreach ($data["role"] as $r) {
-                if (!in_array($r, $allowedRoles)) {
-                   throw new \InvalidArgumentException(
-                        'Invalid role: ' . $r . '. Allowed roles: ' . implode(', ', $allowedRoles)
-                    );
-                }
-            }
-            
-
-         $user->setRoles($data["role"]);
-       }
-       if(isset($data['password'])){
-                   $user->setPassword($this->passwordHasher->hashPassword($user,$data['password'] )); 
-
-       }
-        $this->em->flush();
-        return ['status'=>'User updated successfully'];
-
+    if (isset($data['password'])) {
+        $user->setPassword(
+            $this->passwordHasher->hashPassword($user,$data['password'])
+        );
     }
+
+    $this->em->flush();
+
+    return $this->formatRegister($user);
+    }   
+ 
+
     //delete user
 
      public function deleteUsers(int $id ){
@@ -144,4 +141,16 @@ class RegisterService
         return [
         'message' => 'User deleted successfully'
             ];     }
+
+     private function formatRegister(User $user): array
+   {
+    return [
+        "id" => $user->getId(),
+        "name" => $user->getName(),
+        "phone" => $user->getPhone(),
+        "city" => $user->getCity(),
+        "email" => $user->getEmail(),
+        "roles" => $user->getRoles()
+    ];
+    }
 }
