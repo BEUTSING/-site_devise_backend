@@ -14,7 +14,7 @@ security:
 
     firewalls:
         dev:
-            pattern: ^/(_(profiler|wdt)|css|images|js)/
+            pattern: ^/(api/doc\.json|api/v1/doc|_(profiler|wdt)|css|images|js)(/|$)
             security: false
 
         login:
@@ -27,6 +27,12 @@ security:
                 success_handler: lexik_jwt_authentication.handler.authentication_success
                 failure_handler: lexik_jwt_authentication.handler.authentication_failure
 
+        api:
+                    pattern: ^/api
+                    stateless: true
+                    entry_point: jwt
+                    jwt: ~
+                    
     access_control:
         - { path: ^/api/v1/user/login, roles: PUBLIC_ACCESS }
         - { path: ^/api/v1/user/register, roles: PUBLIC_ACCESS }
